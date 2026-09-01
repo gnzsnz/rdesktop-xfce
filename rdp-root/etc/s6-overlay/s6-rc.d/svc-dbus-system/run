@@ -1,0 +1,7 @@
+#!/usr/bin/with-contenv bash
+# System D-Bus daemon. There is no systemd here to start it, and polkit /
+# several XFCE components expect /run/dbus/system_bus_socket to exist.
+mkdir -p /run/dbus
+[ -s /etc/machine-id ] || dbus-uuidgen --ensure
+rm -f /run/dbus/pid
+exec dbus-daemon --system --nofork --nopidfile

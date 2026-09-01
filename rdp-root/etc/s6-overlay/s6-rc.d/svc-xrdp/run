@@ -1,0 +1,5 @@
+#!/usr/bin/with-contenv bash
+# The RDP listener. Must come up after sesman -- expressed as a real
+# s6-rc dependency below, not a sleep/poll hack.
+# See svc-xrdp-sesman/run for how s6-notifyoncheck's readiness fd works.
+exec s6-notifyoncheck -w 500 -c "nc -z localhost 3389" xrdp --nodaemon

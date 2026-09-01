@@ -1,0 +1,72 @@
+# syntax=docker/dockerfile:1
+#
+# TWS / IB Gateway RDP desktop image, on LinuxServer's Ubuntu base
+# (s6-overlay v3, no systemd) -- not the discontinued linuxserver/rdesktop
+# line. xrdp + xorgxrdp + XFCE run as native s6-rc services.
+#
+# See:
+# https://github.com/linuxserver/docker-baseimage-ubuntu/releases
+FROM lscr.io/linuxserver/baseimage-ubuntu:resolute
+
+LABEL maintainer="gnzsnz"
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "**** Mozilla APT repo (Firefox) ****"
+apt-get update
+apt-get install -y --no-install-recommends ca-certificates curl
+install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg \
+  -o /etc/apt/keyrings/packages.mozilla.org.asc
+printf 'Types: deb\nURIs: https://packages.mozilla.org/apt\nSuites: mozilla\nComponents: main\nSigned-By: /etc/apt/keyrings/packages.mozilla.org.asc\n' \
+  > /etc/apt/sources.list.d/mozilla.sources
+printf 'Package: *\nPin: origin packages.mozilla.org\nPin-Priority: 1000\n\nPackage: firefox\nPin: release o=Ubuntu\nPin-Priority: -1\n' \
+  > /etc/apt/preferences.d/mozilla
+
+echo "**** desktop + xrdp stack ****"
+apt-get update
+apt-get upgrade -y
+apt-get install -y --no-install-recommends \
+  xfce4-session xfwm4 xfce4-panel xfce4-settings xfdesktop4 libxfce4ui-utils \
+  xfce4-cpugraph-plugin xfce4-netload-plugin xfce4-taskmanager xfce4-xkb-plugin \
+  xfce4-notes gvfs gvfs-backends gvfs-fuse xfce4-terminal thunar dbus dbus-x11 xfconf \
+  xfce4-appfinder xrdp xorgxrdp xauth firefox \
+  x11-xserver-utils fonts-noto-core fonts-liberation
+rm -rf /var/lib/apt/lists/*
+
+echo "**** xrdp/sesman config ****"
+# certificate=/key_file=: point at /config so the TLS cert is generated
+# once per deployment (init-xrdp-user.sh) instead of sharing the
+# postinst-baked one across every container from this image tag.
+# EnableUserWindowManager=false: always use our startwm.sh, never a
+# per-user ~/startwm.sh.
+sed -i \
+  -e 's/^security_layer=.*/security_layer=tls/' \
+  -e 's/^crypt_level=.*/crypt_level=high/' \
+  -e 's|^certificate=.*|certificate=/config/ssl/cert.pem|' \
+  -e 's|^key_file=.*|key_file=/config/ssl/cert.key|' \
+  /etc/xrdp/xrdp.ini
+sed -i \
+  -e 's/^EnableUserWindowManager=.*/EnableUserWindowManager=false/' \
+  /etc/xrdp/sesman.ini
+
+# abc ships with shell /bin/false; xfce4-terminal execs it per window,
+# so it needs a real shell or every terminal closes instantly.
+echo "**** abc shell ****"
+usermod -s /bin/bash abc
+EOF
+
+# s6-rc services, startwm.sh, xfconf defaults. --chmod=0755 covers the
+# scripts that need +x; harmless no-op on the rest.
+COPY --chmod=0755 rdp-root/ /
+
+# See init-xrdp-user.sh for RDP_PASSWORD / no-op fallback behavior.
+ENV RDP_USER=abc
+
+EXPOSE 3389
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD bash -c 'echo > /dev/tcp/127.0.0.1/3389' || exit 1

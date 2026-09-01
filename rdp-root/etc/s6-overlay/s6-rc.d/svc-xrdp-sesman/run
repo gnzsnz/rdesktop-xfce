@@ -1,0 +1,21 @@
+#!/usr/bin/with-contenv bash
+# xrdp-sesman must run as root: it setuid()s into the RDP login user at
+# authentication time. It cannot be dropped to an unprivileged user the
+# way the desktop session itself can. See:
+# https://github.com/neutrinolabs/xrdp/discussions/2309
+#   ("We don't test xrdp-sesman without root privileges.")
+# s6-notifyoncheck reads the fd to write the readiness byte to from the
+# sibling ./notification-fd file (confirmed against skarnet.org's docs --
+# no need to pass -3 explicitly). This makes s6-rc wait for sesman to
+# actually be accepting connections before considering it "up" and
+# starting svc-xrdp, instead of just "the process was exec'd".
+#
+# NOT "nc -z localhost 3350" (LinuxServer's own check, for their build):
+# tested live and it silently hangs svc-xrdp forever on this image.
+# sesman.ini here has `#ListenPort=sesman.socket` (commented out) --
+# this Ubuntu xrdp-sesman build listens on the Unix socket
+# /var/run/xrdp/sockdir/sesman.socket, not TCP port 3350 at all, so a
+# port check can never succeed and s6-notifyoncheck gives up after its
+# default 7 attempts without ever sending the readiness byte. Check for
+# the actual socket file instead.
+exec s6-notifyoncheck -w 500 -c "test -S /var/run/xrdp/sockdir/sesman.socket" xrdp-sesman --nodaemon

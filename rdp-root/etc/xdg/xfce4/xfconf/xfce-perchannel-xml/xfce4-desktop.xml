@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+System-wide xfconf default, not a user config file: xfconfd merges this in
+automatically (confirmed live: /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/
+is xfconfd's documented system-default lookup path) whenever the user's own
+$HOME/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml hasn't set
+a property, and is silently overridden the moment the user changes their
+background from Settings. Without this, xfdesktop starts with no
+last-image at all (nothing in this hand-picked package set seeds one --
+xubuntu-desktop's metapackage would have, but that pulls in far more than
+this appliance needs) and the desktop is just black.
+
+"monitorrdp0" matches xorgxrdp's virtual output name (confirmed via xrandr
+against a live xrdp session -- xorgxrdp names its RDP output "rdp0"). If a
+future xorgxrdp version changes that name, this default silently stops
+applying (xfdesktop just falls back to its own black-screen default again)
+rather than erroring -- harmless, but worth knowing if the black background
+reappears after an xorgxrdp upgrade.
+-->
+<channel name="xfce4-desktop" version="1.0">
+  <property name="backdrop" type="empty">
+    <property name="screen0" type="empty">
+      <property name="monitorrdp0" type="empty">
+        <property name="workspace0" type="empty">
+          <property name="last-image" type="string" value="/usr/share/backgrounds/xfce/xfce-blue.jpg"/>
+          <property name="image-style" type="int" value="5"/>
+          <property name="color-style" type="int" value="0"/>
+        </property>
+      </property>
+    </property>
+  </property>
+</channel>
