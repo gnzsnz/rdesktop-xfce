@@ -11,6 +11,7 @@ FROM lscr.io/linuxserver/baseimage-ubuntu:resolute
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+# hadolint ignore=DL3008,DL4006,SC3040
 RUN <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
