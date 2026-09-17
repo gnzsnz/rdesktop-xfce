@@ -1,0 +1,18 @@
+services:
+  rdesktop-xfce:
+    image: ghcr.io/gnzsnz/rdesktop-xfce:latest
+    container_name: rdesktop-xfce
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - RDP_USER=abc
+      # - RDP_PASSWORD=changeme
+    volumes:
+      - ./config:/config
+    ports:
+      - "3389:3389"
+    shm_size: "1gb"
+    restart: unless-stopped

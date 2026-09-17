@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1
 #
 # TWS / IB Gateway RDP desktop image, on LinuxServer's Ubuntu base
-# (s6-overlay v3, no systemd) -- not the discontinued linuxserver/rdesktop
-# line. xrdp + xorgxrdp + XFCE run as native s6-rc services.
+# (s6-overlay v3, no systemd)
+# xrdp + xorgxrdp + XFCE run as native s6-rc services.
 #
 # See:
 # https://github.com/linuxserver/docker-baseimage-ubuntu/releases
+#
 FROM lscr.io/linuxserver/baseimage-ubuntu:resolute
 
-LABEL maintainer="gnzsnz"
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN <<'EOF'
@@ -17,7 +17,7 @@ set -euo pipefail
 
 echo "**** Mozilla APT repo (Firefox) ****"
 apt-get update
-apt-get install -y --no-install-recommends ca-certificates curl
+apt-get install -y --no-install-recommends ca-certificates curl sudo
 install -d -m 0755 /etc/apt/keyrings
 curl -fsSL https://packages.mozilla.org/apt/repo-signing-key.gpg \
   -o /etc/apt/keyrings/packages.mozilla.org.asc
@@ -57,6 +57,7 @@ sed -i \
 # so it needs a real shell or every terminal closes instantly.
 echo "**** abc shell ****"
 usermod -s /bin/bash abc
+echo "abc ALL=(ALL) NOPASSWD:ALL" | tee -a /etc/sudoers
 EOF
 
 # s6-rc services, startwm.sh, xfconf defaults. --chmod=0755 covers the
@@ -70,3 +71,9 @@ EXPOSE 3389
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD bash -c 'echo > /dev/tcp/127.0.0.1/3389' || exit 1
+
+LABEL org.opencontainers.image.authors="gnzsnz"
+LABEL org.opencontainers.image.source=https://github.com/gnzsnz/rdesktop-xfce
+LABEL org.opencontainers.image.url=https://github.com/gnzsnz/rdesktop-xfce/pkgs/container/rdesktop-xfce
+LABEL org.opencontainers.image.description="Docker image with XFCE4 and xrdp"
+LABEL org.opencontainers.image.licenses="Apache License Version 2.0"
