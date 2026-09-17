@@ -1,9 +1,14 @@
 services:
   rdesktop-xfce:
+    build:
+      context: .
+      tags:
+        - "ghcr.io/gnzsnz/rdesktop-xfce:latest"
     image: ghcr.io/gnzsnz/rdesktop-xfce:latest
     container_name: rdesktop-xfce
     security_opt:
       - seccomp:unconfined
+      - apparmor:unconfined
     environment:
       - PUID=1000
       - PGID=1000

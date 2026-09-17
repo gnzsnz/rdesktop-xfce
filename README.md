@@ -23,6 +23,7 @@ or with `docker run`:
 docker run -d \
   --name=rdesktop-xfce \
   --security-opt seccomp=unconfined \
+  --security-opt apparmor=unconfined \
   -e PUID=1000 \
   -e PGID=1000 \
   -e TZ=Etc/UTC \
@@ -72,6 +73,15 @@ rdesktop-xfce` on first boot for the generated password (also saved at
 
 - **`--security-opt seccomp=unconfined`** is recommended (as it was for the
   old image) — Firefox needs syscalls Docker's default seccomp profile blocks.
+- **`--security-opt apparmor=unconfined`** is required — GNOME's sandboxed
+  SVG icon loader (`glycin-loaders`, pulled in transitively by XFCE/GVFS)
+  shells out to `bwrap`, which needs to remount `/` as a mount-propagation
+  slave. Docker's default AppArmor profile denies that regardless of
+  capabilities/seccomp, so the loader fails every time it's invoked. That
+  failure is usually silent (a missing icon), but XFCE treats certain
+  failed icon loads as fatal (`Gtk:ERROR:...assertion failed (error ==
+  NULL)`), aborting the window manager process and killing the whole RDP
+  session out from under you mid-use.
 - **`shm_size: 1gb`** — Firefox and other Chromium/Gecko-based apps can
   crash under Docker's default 64MB `/dev/shm`.
 - Firefox from Mozilla's own APT repo
