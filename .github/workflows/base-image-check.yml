@@ -1,0 +1,64 @@
+name: Base image check
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check upstream base image digest
+        run: |
+          set -euo pipefail
+
+          base_ref=$(grep -m1 '^FROM' Dockerfile | awk '{print $2}')
+          echo "Base image: $base_ref"
+
+          digest=$(docker buildx imagetools inspect "$base_ref" --format '{{json .Manifest}}' | jq -r '.digest')
+          short="${digest#sha256:}"
+          short="${short:0:12}"
+          echo "Current digest: $digest ($short)"
+
+          gh label create base-image-update \
+            --color 5319e7 \
+            --description "Upstream base image has a new digest" \
+            --force >/dev/null
+
+          existing=$(gh issue list \
+            --label base-image-update \
+            --state open \
+            --search "$short in:title" \
+            --json number \
+            --jq '.[0].number // empty' || true)
+
+          if [ -n "$existing" ]; then
+            echo "Already notified for $short in issue #$existing, skipping."
+            exit 0
+          fi
+
+          body_file=$(mktemp)
+          {
+            echo "Upstream base image \`$base_ref\` now resolves to a new digest:"
+            echo
+            echo '```'
+            echo "$digest"
+            echo '```'
+            echo
+            echo "Rebuild and republish this image to pick up the update."
+          } > "$body_file"
+
+          gh issue create \
+            --title "Base image update: $base_ref ($short)" \
+            --label base-image-update \
+            --body-file "$body_file"
