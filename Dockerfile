@@ -71,7 +71,7 @@ ENV RDP_USER=abc
 EXPOSE 3389
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-  CMD bash -c 'echo > /dev/tcp/127.0.0.1/3389' || exit 1
+  CMD ["bash", "-c", "echo > /dev/tcp/127.0.0.1/3389 || exit 1"]
 
 LABEL org.opencontainers.image.authors="gnzsnz"
 LABEL org.opencontainers.image.source=https://github.com/gnzsnz/rdesktop-xfce
