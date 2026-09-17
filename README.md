@@ -41,7 +41,7 @@ rdesktop-xfce` on first boot for the generated password (also saved at
 ## Environment variables
 
 | Variable | Default | Description |
-|---|---|---|
+| --- | --- | --- |
 | `PUID` | `911` | UID the desktop session runs as. Match it to the owner of your `/config` bind mount. |
 | `PGID` | `911` | GID counterpart to `PUID`. |
 | `TZ` | `Etc/UTC` | Timezone, e.g. `Europe/London`. |
@@ -59,18 +59,17 @@ rdesktop-xfce` on first boot for the generated password (also saved at
 ## Volumes
 
 | Path | Purpose |
-|---|---|
+| --- | --- |
 | `/config` | `abc`'s home directory. Also holds `/config/ssl/` (self-signed TLS cert/key, generated once) and `/config/.rdp_credentials` (auto-generated password, if any). Persist this. |
 
 ## Ports
 
 | Port | Purpose |
-|---|---|
+| --- | --- |
 | `3389/tcp` | RDP |
 
 ## Notes
 
-- The base image is `linuxserver/baseimage-ubuntu:resolute`, with s6-overlay v3.
 - **`--security-opt seccomp=unconfined`** is recommended (as it was for the
   old image) — Firefox needs syscalls Docker's default seccomp profile blocks.
 - **`shm_size: 1gb`** — Firefox and other Chromium/Gecko-based apps can
