@@ -62,6 +62,8 @@ rdesktop-xfce` on first boot for the generated password (also saved at
 | Path | Purpose |
 | --- | --- |
 | `/config` | `abc`'s home directory. Also holds `/config/ssl/` (self-signed TLS cert/key, generated once) and `/config/.rdp_credentials` (auto-generated password, if any). Persist this. |
+| `/custom-cont-init.d` | *(optional)* One-shot init scripts, run once at container start. Inherited from `linuxserver/baseimage-ubuntu` — see [Custom Scripts](https://docs.linuxserver.io/general/container-customization/#custom-scripts). |
+| `/custom-services.d` | *(optional)* Long-running services, s6-supervised. Same LinuxServer convention as above. |
 
 ## Ports
 

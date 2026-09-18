@@ -17,6 +17,9 @@ services:
       # - RDP_PASSWORD=changeme
     volumes:
       - ./config:/config
+      # custom init scripts / services, inherited from linuxserver/baseimage-ubuntu
+      # - ./custom-cont-init.d:/custom-cont-init.d
+      # - ./custom-services.d:/custom-services.d
     ports:
       - "3389:3389"
     shm_size: "1gb"
