@@ -53,8 +53,7 @@ jobs:
             ghcr.io/gnzsnz/rdesktop-xfce
             docker.io/gnzsnz/rdesktop-xfce
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major.minor}}
+            type=match,pattern=v(.*),group=1
             type=raw,value=latest
 
       - name: Build and push
@@ -85,36 +84,45 @@ jobs:
       - name: Collect reproducibility evidence
         run: |
           set -euo pipefail
-          image="ghcr.io/gnzsnz/rdesktop-xfce@${{ steps.build.outputs.digest }}"
-
-          docker buildx imagetools inspect "$image" --format '{{json .SBOM}}' > sbom.json
-          docker buildx imagetools inspect "$image" --format '{{json .Provenance}}' > provenance.json
+          digest="${{ steps.build.outputs.digest }}"
 
           {
-            echo "# Build info"
+            echo "## Build info"
             echo
             echo "- Tag: ${GITHUB_REF_NAME}"
             echo "- Git commit: ${GITHUB_SHA}"
             echo "- Build timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
             echo "- Base image (pinned): ${{ steps.resolve-base.outputs.pinned_base }}"
-            echo "- Published image digest: ${{ steps.build.outputs.digest }}"
+            echo "- Published image digest: ${digest}"
             echo "- Platforms: linux/amd64,linux/arm64"
             echo "- Registries: ghcr.io/gnzsnz/rdesktop-xfce, docker.io/gnzsnz/rdesktop-xfce"
+            echo
+            echo "Image tags: \`${GITHUB_REF_NAME}\` and \`latest\`. \`latest\` is mutable — pin by tag or by digest for reproducibility."
+            echo
+            echo "A package version named \`sha256-<digest>.sig\` alongside the image is the cosign signature artifact, not a separate image."
+            echo
+            echo "### Verify"
+            echo '```bash'
+            echo "cosign verify ghcr.io/gnzsnz/rdesktop-xfce@${digest} \\"
+            echo "  --certificate-identity-regexp '.*' --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+            echo
+            echo "docker buildx imagetools inspect ghcr.io/gnzsnz/rdesktop-xfce@${digest} --format '{{json .SBOM}}'"
+            echo "docker buildx imagetools inspect ghcr.io/gnzsnz/rdesktop-xfce@${digest} --format '{{json .Provenance}}'"
+            echo '```'
           } > BUILD_INFO.md
 
           sed \
-            -e "s#ghcr.io/gnzsnz/rdesktop-xfce:latest#ghcr.io/gnzsnz/rdesktop-xfce@${{ steps.build.outputs.digest }}#g" \
+            -e "s#ghcr.io/gnzsnz/rdesktop-xfce:latest#ghcr.io/gnzsnz/rdesktop-xfce@${digest}#g" \
             docker-compose.yml > compose.release.yml
 
-          sha256sum compose.release.yml BUILD_INFO.md sbom.json provenance.json > SHA256SUMS
+          sha256sum compose.release.yml > SHA256SUMS
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          append_body: true
+          body_path: BUILD_INFO.md
           files: |
             compose.release.yml
-            BUILD_INFO.md
-            sbom.json
-            provenance.json
             SHA256SUMS
