@@ -34,7 +34,8 @@ apt-get install -y --no-install-recommends \
   xfce4-session xfwm4 xfce4-panel xfce4-settings xfdesktop4 libxfce4ui-utils \
   xfce4-cpugraph-plugin xfce4-netload-plugin xfce4-taskmanager xfce4-xkb-plugin \
   xfce4-notes gvfs gvfs-backends gvfs-fuse xfce4-terminal thunar dbus dbus-x11 xfconf \
-  xfce4-appfinder xrdp xorgxrdp xauth firefox \
+  xfce4-appfinder xrdp xorgxrdp xauth firefox mousepad xfce4-pulseaudio-plugin \
+  pipewire pipewire-pulse wireplumber pipewire-module-xrdp pulseaudio-utils \
   x11-xserver-utils fonts-noto-core fonts-liberation
 rm -rf /var/lib/apt/lists/*
 
