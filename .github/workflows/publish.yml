@@ -99,8 +99,6 @@ jobs:
             echo
             echo "Image tags: \`${GITHUB_REF_NAME}\` and \`latest\`. \`latest\` is mutable — pin by tag or by digest for reproducibility."
             echo
-            echo "A package version named \`sha256-<digest>.sig\` alongside the image is the cosign signature artifact, not a separate image."
-            echo
             echo "### Verify"
             echo '```bash'
             echo "cosign verify ghcr.io/gnzsnz/rdesktop-xfce@${digest} \\"
