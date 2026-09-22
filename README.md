@@ -94,6 +94,24 @@ rdesktop-xfce` on first boot for the generated password (also saved at
 set, persisted to `/config/.rdp_credentials`, printed once to the
 container log.
 
+## Troubleshooting
+
+### Firefox: youtube.com / music.youtube.com load blank (Docker Desktop macOS/Windows)
+
+**Problem**: Docker Desktop's bind mount for `./config` doesn't support
+the file locking Firefox's IndexedDB (SQLite) needs, so YouTube's
+IndexedDB-heavy app fails to init and renders blank. Same risk on Windows
+whenever `/config` is bound from the Windows side (Hyper-V backend, or a
+WSL2 path under `/mnt/c/...`); a `./config` that lives natively inside
+WSL2 isn't affected.
+
+**Fix**: give Firefox's profile its own named volume instead of the bind
+mount — uncomment `firefox-profile:/config/.config/mozilla/firefox` and
+`./custom-cont-init.d:/custom-cont-init.d` in
+[`docker-compose.yml`](./docker-compose.yml). The init script
+(`custom-cont-init.d/10-chown-firefox-profile.sh`) fixes the fresh
+volume's `root:root` ownership so Firefox can write to it.
+
 ## License
 
 ```text
