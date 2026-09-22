@@ -18,9 +18,16 @@ services:
     volumes:
       - ./config:/config
       # custom init scripts / services, inherited from linuxserver/baseimage-ubuntu
+      # uncomment if firefox fails
       # - ./custom-cont-init.d:/custom-cont-init.d
       # - ./custom-services.d:/custom-services.d
+      # uncomment if firefox fails
+      # - firefox-profile:/config/.config/mozilla/firefox
     ports:
       - "3389:3389"
     shm_size: "1gb"
     restart: unless-stopped
+
+# uncomment if firefox fails
+# volumes:
+#   firefox-profile:
