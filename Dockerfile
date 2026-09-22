@@ -7,7 +7,8 @@
 # See:
 # https://github.com/linuxserver/docker-baseimage-ubuntu/releases
 #
-FROM lscr.io/linuxserver/baseimage-ubuntu:resolute
+ARG BASE_IMAGE=lscr.io/linuxserver/baseimage-ubuntu:resolute
+FROM ${BASE_IMAGE}
 
 ARG DEBIAN_FRONTEND=noninteractive
 

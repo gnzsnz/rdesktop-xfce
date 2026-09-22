@@ -22,7 +22,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          base_ref=$(grep -m1 '^FROM' Dockerfile | awk '{print $2}')
+          base_ref=$(grep -m1 '^ARG BASE_IMAGE=' Dockerfile | cut -d= -f2-)
           echo "Base image: $base_ref"
 
           digest=$(docker buildx imagetools inspect "$base_ref" --format '{{json .Manifest}}' | jq -r '.digest')

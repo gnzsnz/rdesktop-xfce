@@ -5,8 +5,9 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: read
+  contents: write
   packages: write
+  id-token: write
 
 jobs:
   publish:
@@ -34,6 +35,16 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Resolve base image digest
+        id: resolve-base
+        run: |
+          set -euo pipefail
+          base_ref=$(grep -m1 '^ARG BASE_IMAGE=' Dockerfile | cut -d= -f2-)
+          digest=$(docker buildx imagetools inspect "$base_ref" --format '{{json .Manifest}}' | jq -r '.digest')
+          pinned="${base_ref%%:*}@${digest}"
+          echo "Pinning base image: $pinned"
+          echo "pinned_base=$pinned" >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v6
@@ -47,6 +58,7 @@ jobs:
             type=raw,value=latest
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -54,5 +66,55 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            BASE_IMAGE=${{ steps.resolve-base.outputs.pinned_base }}
+          provenance: true
+          sbom: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign images (keyless)
+        run: |
+          set -euo pipefail
+          cosign sign --yes "ghcr.io/gnzsnz/rdesktop-xfce@${{ steps.build.outputs.digest }}"
+          cosign sign --yes "docker.io/gnzsnz/rdesktop-xfce@${{ steps.build.outputs.digest }}"
+
+      - name: Collect reproducibility evidence
+        run: |
+          set -euo pipefail
+          image="ghcr.io/gnzsnz/rdesktop-xfce@${{ steps.build.outputs.digest }}"
+
+          docker buildx imagetools inspect "$image" --format '{{json .SBOM}}' > sbom.json
+          docker buildx imagetools inspect "$image" --format '{{json .Provenance}}' > provenance.json
+
+          {
+            echo "# Build info"
+            echo
+            echo "- Tag: ${GITHUB_REF_NAME}"
+            echo "- Git commit: ${GITHUB_SHA}"
+            echo "- Build timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "- Base image (pinned): ${{ steps.resolve-base.outputs.pinned_base }}"
+            echo "- Published image digest: ${{ steps.build.outputs.digest }}"
+            echo "- Platforms: linux/amd64,linux/arm64"
+            echo "- Registries: ghcr.io/gnzsnz/rdesktop-xfce, docker.io/gnzsnz/rdesktop-xfce"
+          } > BUILD_INFO.md
+
+          sed \
+            -e "s#ghcr.io/gnzsnz/rdesktop-xfce:latest#ghcr.io/gnzsnz/rdesktop-xfce@${{ steps.build.outputs.digest }}#g" \
+            docker-compose.yml > compose.release.yml
+
+          sha256sum compose.release.yml BUILD_INFO.md sbom.json provenance.json > SHA256SUMS
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            compose.release.yml
+            BUILD_INFO.md
+            sbom.json
+            provenance.json
+            SHA256SUMS
