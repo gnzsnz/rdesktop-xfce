@@ -13,6 +13,8 @@ which is browser/Selkies-based, not RDP).
 
 ## Quick start
 
+Preferred option is with [docker compose](./docker-compose.yml):
+
 ```bash
 docker compose up -d
 ```
