@@ -50,13 +50,14 @@ rdesktop-xfce` on first boot for the generated password (also saved at
 | `TZ` | `Etc/UTC` | Timezone, e.g. `Europe/London`. |
 | `UMASK` | `022` | Default umask for files created in the session. |
 | `RDP_USER` | `abc` | Login username. Only meaningful to change if you also rename/replace the baseimage's `abc` account yourself; left at `abc` in normal use. |
-| `RDP_PASSWORD` | *(unset)* | RDP login password. If unset, a random 20-character password is generated once on first boot, printed to the container log, and persisted at `/config/.rdp_credentials` so it survives restarts. Set this explicitly for anything beyond throwaway/local use. |
+| `RDP_PASSWORD` | *(unset)* | RDP login password. If neither this nor `RDP_PASSWORD_FILE` is set, a random 20-character password is generated once on first boot, printed to the container log, and persisted at `/config/.rdp_credentials` so it survives restarts. Set this explicitly for anything beyond throwaway/local use. |
+| `RDP_PASSWORD_FILE` | *(unset)* | Read `RDP_PASSWORD` from a file instead (Docker/Swarm secrets, etc). Checked before `FILE__RDP_PASSWORD` below; exclusive with `RDP_PASSWORD` (container exits with an error if both are set). This image's own local convention — see `rdp-root/etc/s6-overlay/scripts/init-xrdp-user.sh`. |
 | `FILE__RDP_PASSWORD` | *(unset)* | Docker/Swarm-secrets form of `RDP_PASSWORD` — point it at a file and its contents are read into `RDP_PASSWORD` at startup. Works for any `FILE__<VAR>` per the baseimage's standard convention. |
 | `DOCKER_MODS` | *(unset)* | Apply a [LinuxServer mod](https://mods.linuxserver.io/) at startup, e.g. `linuxserver/mods:universal-package-install` + `INSTALL_PACKAGES=...` to add packages without a custom build. |
 
 `PUID`/`PGID`/`TZ`/`UMASK`/`DOCKER_MODS`/`FILE__*` all come for free from
 `linuxserver/baseimage-ubuntu` — nothing in this image overrides them.
-`RDP_USER`/`RDP_PASSWORD` are specific to this image (see
+`RDP_USER`/`RDP_PASSWORD`/`RDP_PASSWORD_FILE` are specific to this image (see
 `rdp-root/etc/s6-overlay/scripts/init-xrdp-user.sh`).
 
 ## Volumes

@@ -15,6 +15,7 @@ services:
       - TZ=Etc/UTC
       - RDP_USER=abc
       # - RDP_PASSWORD=changeme
+      # - RDP_PASSWORD_FILE=/run/secrets/rdp_pass
     volumes:
       - ./config:/config
       # custom init scripts / services, inherited from linuxserver/baseimage-ubuntu

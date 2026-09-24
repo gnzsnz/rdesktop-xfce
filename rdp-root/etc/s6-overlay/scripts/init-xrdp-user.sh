@@ -3,13 +3,15 @@
 # Sets the RDP login password for the desktop user. Runs once per
 # container start (oneshot), before xrdp-sesman comes up.
 #
-#   RDP_PASSWORD   - set explicitly to pin the password (recommended for
-#                    anything but throwaway/local use)
-#   RDP_USER       - defaults to "abc", the LinuxServer baseimage user
+#   RDP_PASSWORD      - set explicitly to pin the password (recommended for
+#                       anything but throwaway/local use)
+#   RDP_PASSWORD_FILE - read RDP_PASSWORD from a file instead (Docker/Swarm
+#                       secrets, etc). Exclusive with RDP_PASSWORD.
+#   RDP_USER          - defaults to "abc", the LinuxServer baseimage user
 #
-# If RDP_PASSWORD isn't set, a random password is generated once and
-# persisted under /config so it survives container recreation, and is
-# printed to the container log exactly once.
+# If neither RDP_PASSWORD nor RDP_PASSWORD_FILE is set, a random password
+# is generated once and persisted under /config so it survives container
+# recreation, and is printed to the container log exactly once.
 set -euo pipefail
 
 RDP_USER="${RDP_USER:-abc}"
@@ -21,8 +23,15 @@ if ! id "$RDP_USER" >/dev/null 2>&1; then
 	exit 0
 fi
 
+if [ -n "${RDP_PASSWORD:-}" ] && [ -n "${RDP_PASSWORD_FILE:-}" ]; then
+	echo "[init-xrdp-user] error: both RDP_PASSWORD and RDP_PASSWORD_FILE are set (but are exclusive)" >&2
+	exit 1
+fi
+
 if [ -n "${RDP_PASSWORD:-}" ]; then
 	PASSWORD="$RDP_PASSWORD"
+elif [ -n "${RDP_PASSWORD_FILE:-}" ] && [ -s "${RDP_PASSWORD_FILE}" ]; then
+	PASSWORD="$(cat "${RDP_PASSWORD_FILE}")"
 elif [ -s "$CRED_FILE" ]; then
 	PASSWORD="$(cat "$CRED_FILE")"
 else
