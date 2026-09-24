@@ -1,4 +1,5 @@
 #!/usr/bin/with-contenv bash
+# shellcheck shell=bash
 # Sets the RDP login password for the desktop user. Runs once per
 # container start (oneshot), before xrdp-sesman comes up.
 #
@@ -15,32 +16,32 @@ RDP_USER="${RDP_USER:-abc}"
 CRED_FILE="/config/.rdp_credentials"
 
 if ! id "$RDP_USER" >/dev/null 2>&1; then
-    echo "[init-xrdp-user] user '$RDP_USER' does not exist yet -- baseimage-ubuntu's" >&2
-    echo "[init-xrdp-user] own PUID/PGID init should have created it. Skipping." >&2
-    exit 0
+	echo "[init-xrdp-user] user '$RDP_USER' does not exist yet -- baseimage-ubuntu's" >&2
+	echo "[init-xrdp-user] own PUID/PGID init should have created it. Skipping." >&2
+	exit 0
 fi
 
 if [ -n "${RDP_PASSWORD:-}" ]; then
-    PASSWORD="$RDP_PASSWORD"
+	PASSWORD="$RDP_PASSWORD"
 elif [ -s "$CRED_FILE" ]; then
-    PASSWORD="$(cat "$CRED_FILE")"
+	PASSWORD="$(cat "$CRED_FILE")"
 else
-    # `|| true`: `head -c20` closing its read end early sends `tr` a
-    # SIGPIPE; under `pipefail` that makes this whole statement's exit
-    # status 141, which `set -e` then treats as fatal even though $PASSWORD
-    # was assigned correctly. Confirmed live: a genuinely fresh boot (no
-    # RDP_PASSWORD, no persisted credentials file) crashed this oneshot
-    # with exactly that signal before this fix.
-    PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)" || true
-    mkdir -p /config
-    printf '%s' "$PASSWORD" > "$CRED_FILE"
-    chmod 600 "$CRED_FILE"
-    chown "$RDP_USER" "$CRED_FILE" 2>/dev/null || true
-    echo "###########################################################"
-    echo "# Generated RDP password for user '${RDP_USER}':"
-    echo "# ${PASSWORD}"
-    echo "# Persisted at ${CRED_FILE} -- set RDP_PASSWORD to override."
-    echo "###########################################################"
+	# `|| true`: `head -c20` closing its read end early sends `tr` a
+	# SIGPIPE; under `pipefail` that makes this whole statement's exit
+	# status 141, which `set -e` then treats as fatal even though $PASSWORD
+	# was assigned correctly. Confirmed live: a genuinely fresh boot (no
+	# RDP_PASSWORD, no persisted credentials file) crashed this oneshot
+	# with exactly that signal before this fix.
+	PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)" || true
+	mkdir -p /config
+	printf '%s' "$PASSWORD" >"$CRED_FILE"
+	chmod 600 "$CRED_FILE"
+	chown "$RDP_USER" "$CRED_FILE" 2>/dev/null || true
+	echo "###########################################################"
+	echo "# Generated RDP password for user '${RDP_USER}':"
+	echo "# ${PASSWORD}"
+	echo "# Persisted at ${CRED_FILE} -- set RDP_PASSWORD to override."
+	echo "###########################################################"
 fi
 
 echo "${RDP_USER}:${PASSWORD}" | chpasswd
@@ -73,12 +74,12 @@ chmod 2775 /var/run/xrdp
 # volume carried over from webtop already has a working cert/key here and
 # this step just reuses it instead of generating a second one.
 if [ ! -f "/config/ssl/cert.pem" ]; then
-    mkdir -p /config/ssl
-    openssl req -new -x509 \
-        -days 3650 -nodes \
-        -out /config/ssl/cert.pem \
-        -keyout /config/ssl/cert.key \
-        -subj "/C=US/ST=CA/L=Carlsbad/O=Linuxserver.io/OU=LSIO Server/CN=*"
-    chmod 600 /config/ssl/cert.key
-    chown -R "$RDP_USER" /config/ssl
+	mkdir -p /config/ssl
+	openssl req -new -x509 \
+		-days 3650 -nodes \
+		-out /config/ssl/cert.pem \
+		-keyout /config/ssl/cert.key \
+		-subj "/C=US/ST=CA/L=Carlsbad/O=Linuxserver.io/OU=LSIO Server/CN=*"
+	chmod 600 /config/ssl/cert.key
+	chown -R "$RDP_USER" /config/ssl
 fi

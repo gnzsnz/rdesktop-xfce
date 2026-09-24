@@ -1,0 +1,61 @@
+#!/bin/sh
+# bwrap shim for glycin (GTK/gdk-pixbuf image loaders) inside containers.
+#
+# glycin sandboxes every image decode with `bwrap --unshare-all ...`. In a
+# container that usually can't work: Docker's default capability set, or
+# a host with kernel.apparmor_restrict_unprivileged_userns=1 (Ubuntu
+# 23.10+ default), lets the user namespace be created but not configured
+# ("setting up uid map: Permission denied" / "loopback: Failed
+# RTM_NEWADDR"). glycin's own availability probe doesn't catch that, and
+# has no unsandboxed fallback, so every icon load fails and GTK aborts
+# (xfce4-session/xfce4-panel/xfwm4 SIGABRT, "Window manager exited
+# quickly").
+#
+# Use the real bwrap when it actually works on this host; otherwise drop
+# the sandbox options and exec the loader directly, which is what
+# gdk-pixbuf did before glycin.
+REAL=/usr/bin/bwrap
+
+if "$REAL" --unshare-all --die-with-parent --ro-bind / / /bin/true >/dev/null 2>&1; then
+	exec "$REAL" "$@"
+fi
+
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--chdir)
+		cd "$2" || exit 1
+		shift 2
+		;;
+	--setenv)
+		export "$2=$3"
+		shift 3
+		;;
+	--unsetenv)
+		unset "$2"
+		shift 2
+		;;
+	--bind | --bind-try | --ro-bind | --ro-bind-try | --dev-bind | --dev-bind-try | --symlink | --file | --bind-data | --ro-bind-data)
+		shift 3
+		;;
+	--dev | --proc | --tmpfs | --dir | --mqueue | --remount-ro | --seccomp | --add-seccomp-fd | --perms | --size | --uid | --gid | --hostname | --lock-file | --sync-fd | --info-fd | --json-status-fd | --block-fd | --userns-block-fd | --userns | --userns2 | --pidns | --cap-add | --cap-drop | --exec-label | --file-label | --argv0)
+		shift 2
+		;;
+	--chmod)
+		shift 3
+		;;
+	--)
+		shift
+		break
+		;;
+	-*)
+		# boolean flags: --unshare-*, --share-net, --die-with-parent,
+		# --clearenv, --new-session, --as-pid-1, --disable-userns, ...
+		shift
+		;;
+	*)
+		break
+		;;
+	esac
+done
+
+exec "$@"

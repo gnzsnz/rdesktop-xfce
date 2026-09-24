@@ -77,15 +77,27 @@ rdesktop-xfce` on first boot for the generated password (also saved at
 
 - **`--security-opt seccomp=unconfined`** is recommended (as it was for the
   old image) — Firefox needs syscalls Docker's default seccomp profile blocks.
-- **`--security-opt apparmor=unconfined`** is required — GNOME's sandboxed
-  SVG icon loader (`glycin-loaders`, pulled in transitively by XFCE/GVFS)
-  shells out to `bwrap`, which needs to remount `/` as a mount-propagation
-  slave. Docker's default AppArmor profile denies that regardless of
-  capabilities/seccomp, so the loader fails every time it's invoked. That
-  failure is usually silent (a missing icon), but XFCE treats certain
-  failed icon loads as fatal (`Gtk:ERROR:...assertion failed (error ==
-  NULL)`), aborting the window manager process and killing the whole RDP
-  session out from under you mid-use.
+- **`--security-opt apparmor=unconfined`** is recommended — GNOME's
+  image loader (`glycin-loaders`, pulled in transitively by XFCE/GVFS)
+  decodes every icon in a `bwrap` sandbox. If `bwrap` can't run, glycin
+  has no fallback, and XFCE treats some failed icon loads as fatal
+  (`Gtk:ERROR:...assertion failed (error == NULL)`), aborting
+  xfce4-session and killing the RDP session ("Window manager exited
+  quickly" in `xrdp-sesman.log`). `bwrap` is blocked by:
+  - Docker's default AppArmor profile, which denies the mounts it needs
+    (`Failed to make / slave: Permission denied`) — lifted by
+    `apparmor=unconfined`;
+  - hosts with `kernel.apparmor_restrict_unprivileged_userns=1` (Ubuntu
+    23.10+ default), which strip capabilities from the user namespace it
+    creates (`setting up uid map: Permission denied`) — no container
+    option lifts this.
+
+  The image ships a `bwrap` shim in `/usr/local/bin` that uses the real
+  `/usr/bin/bwrap` when it works and otherwise runs the loader
+  unsandboxed (the same trust level as the in-process gdk-pixbuf loaders
+  of Ubuntu 24.04 and earlier), so the desktop works either way;
+  `apparmor=unconfined` just lets you keep the sandbox on hosts without
+  the userns restriction.
 - **`shm_size: 1gb`** — Firefox and other Chromium/Gecko-based apps can
   crash under Docker's default 64MB `/dev/shm`.
 - Firefox from Mozilla's own APT repo

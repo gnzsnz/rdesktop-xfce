@@ -1,0 +1,3 @@
+# Table rows can't be wrapped; keep the 80-column limit for prose.
+MD013:
+  tables: false

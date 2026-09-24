@@ -8,6 +8,8 @@
 # https://github.com/linuxserver/docker-baseimage-ubuntu/releases
 #
 ARG BASE_IMAGE=lscr.io/linuxserver/baseimage-ubuntu:resolute
+# BASE_IMAGE is tagged via the ARG default above
+# hadolint ignore=DL3006
 FROM ${BASE_IMAGE}
 
 ARG DEBIAN_FRONTEND=noninteractive
