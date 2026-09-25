@@ -58,6 +58,14 @@ sed -i \
   -e 's/^EnableUserWindowManager=.*/EnableUserWindowManager=false/' \
   /etc/xrdp/sesman.ini
 
+echo "**** xorgxrdp glamor/DRI3 on AMD ****"
+# xorgxrdp's stock xorg.conf allow-lists only the i915 and radeon kernel
+# drivers for the glamor/DRI3 render node, so on modern AMD GPUs (amdgpu)
+# Xorg logs "unsupported render node" and X11 clients fall back to llvmpipe.
+# No-op without /dev/dri mapped in (see init-video).
+sed -i 's/"i915 radeon"/"i915 radeon amdgpu"/' /etc/X11/xrdp/xorg.conf
+grep -q 'DRMAllowList" "i915 radeon amdgpu"' /etc/X11/xrdp/xorg.conf
+
 # abc ships with shell /bin/false; xfce4-terminal execs it per window,
 # so it needs a real shell or every terminal closes instantly.
 echo "**** abc shell ****"
