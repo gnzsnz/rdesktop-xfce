@@ -24,6 +24,10 @@ services:
       # - ./custom-services.d:/custom-services.d
       # uncomment if firefox fails
       # - firefox-profile:/config/.config/mozilla/firefox
+    # uncomment to test GPU/render device access (init-video); requires a
+    # Linux host with /dev/dri (e.g. Intel/AMD iGPU)
+    # devices:
+    #   - /dev/dri:/dev/dri
     ports:
       - "3389:3389"
     shm_size: "1gb"
