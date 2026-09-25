@@ -39,7 +39,7 @@ apt-get install -y --no-install-recommends \
   xfce4-notes gvfs gvfs-backends gvfs-fuse xfce4-terminal thunar dbus dbus-x11 xfconf \
   xfce4-appfinder xrdp xorgxrdp xauth firefox mousepad xfce4-pulseaudio-plugin \
   pipewire pipewire-pulse wireplumber pipewire-module-xrdp pulseaudio-utils \
-  x11-xserver-utils fonts-noto-core fonts-liberation
+  x11-xserver-utils fonts-noto-core fonts-liberation tumbler
 rm -rf /var/lib/apt/lists/*
 
 echo "**** xrdp/sesman config ****"
@@ -58,13 +58,14 @@ sed -i \
   -e 's/^EnableUserWindowManager=.*/EnableUserWindowManager=false/' \
   /etc/xrdp/sesman.ini
 
-echo "**** xorgxrdp glamor/DRI3 on AMD ****"
+echo "**** xorgxrdp glamor/DRI3 on AMD/NVIDIA ****"
 # xorgxrdp's stock xorg.conf allow-lists only the i915 and radeon kernel
-# drivers for the glamor/DRI3 render node, so on modern AMD GPUs (amdgpu)
-# Xorg logs "unsupported render node" and X11 clients fall back to llvmpipe.
-# No-op without /dev/dri mapped in (see init-video).
-sed -i 's/"i915 radeon"/"i915 radeon amdgpu"/' /etc/X11/xrdp/xorg.conf
-grep -q 'DRMAllowList" "i915 radeon amdgpu"' /etc/X11/xrdp/xorg.conf
+# drivers for the glamor/DRI3 render node, so on modern AMD (amdgpu) or
+# NVIDIA (nvidia, KMS/GBM mode only - nvidia-drm.modeset=1, driver >=515)
+# GPUs Xorg logs "unsupported render node" and X11 clients fall back to
+# llvmpipe. No-op without /dev/dri mapped in (see init-video).
+sed -i 's/"i915 radeon"/"i915 radeon amdgpu nvidia"/' /etc/X11/xrdp/xorg.conf
+grep -q 'DRMAllowList" "i915 radeon amdgpu nvidia"' /etc/X11/xrdp/xorg.conf
 
 # abc ships with shell /bin/false; xfce4-terminal execs it per window,
 # so it needs a real shell or every terminal closes instantly.
